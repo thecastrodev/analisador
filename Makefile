@@ -1,12 +1,12 @@
 all:
-	gcc ./lex.c -o ./bin/lex
-	gcc ./parser.c -o ./bin/parser
+	gcc ./src/lexer.c -o ./bin/lexer.elf
+	gcc ./src/parser.c -o ./bin/parser.elf
 
-lex:./bin/lex
-	./bin/lex $(ARGS)
+lexer:./bin/lexer.elf
+	./bin/lexer.elf $(ARGS)
 	
-parser:./bin/parser
-	./bin/parser $(ARGS)
+parser:./bin/parser.elf
+	./bin/parser.elf $(ARGS)
 
 clean:
 	rm ./bin/*

@@ -1,7 +1,10 @@
+/* parser.c - um analisador sintático simples */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
+int indent = -1;
 
 /* Declarações globais */
 /* Variáveis */
@@ -22,6 +25,7 @@ char *getTokenString(int token);
 #define QUOTE 3
 #define DOT 4
 #define CHAR_STR 5
+#define INT_LIT 6
 #define UNKNOWN 99
 
 /* Códigos de tokens */
@@ -34,7 +38,7 @@ char *getTokenString(int token);
 #define RIGHT_PAREN 26
 #define SEMICOLON 27
 
-#define STATEMENT 100
+#define COMMAND 100
 #define STRING 200
 #define FACTOR 300
 
@@ -49,17 +53,29 @@ char *tokenStrings[] = {
 int tokenNumbers[] =
     {0, 1, 2, 3, 4, 5, 99, 20, 21, 22, 23, 24, 25, 26, 27, 100, 200, 300};
 
-/* Declarações de Funções */
+/* Declarações de Funções Lexico */
+int lookup(char ch);
 void addChar();
 void getChar();
 void getNonBlank();
 int lex();
 void getString();
-int lookup(char ch);
 void error();
 
-/******************************************************************/
-/* função principal */
+/* Declarações de Funções Sintatico */
+void program();
+void stmt_list();
+void stmt();
+void command();
+void expr();
+void string();
+void term();
+void factor();
+void operator();
+void printInTree(char str[]);
+
+/*******************************************************************/
+/* funcao principal */
 int main(int argc, char *argv[])
 {
   if ((f = fopen(argv[1], "r")) == NULL)
@@ -75,9 +91,9 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-/******************************************************************/
-/* lookup - uma função para processar operadores e parênteses
-e retornar o token */
+/*******************************************************************/
+/* lookup - uma funcao para processar operadores, parenteses e ponto
+e virgula, depois retornar o token */
 int lookup(char ch)
 {
   switch (ch)
@@ -118,8 +134,8 @@ int lookup(char ch)
   return nextToken;
 }
 
-/******************************************************************/
-/* addChar - uma função para adicionar nextChar ao vetor lexeme */
+/*******************************************************************/
+/* addChar - uma funcao para adicionar nextChar ao vetor lexeme    */
 void addChar()
 {
   if (lexLen <= 98)
@@ -131,9 +147,9 @@ void addChar()
     printf("Error - lexeme is too long \n");
 }
 
-/******************************************************************/
-/* getChar - uma função para obter o próximo caractere da entrada
-e determinar sua classe de caracteres */
+/*******************************************************************/
+/* getChar - uma funcao para obter o proximo caractere da entrada e
+determinar sua classe de caracteres */
 void getChar()
 {
   if ((nextChar = getc(f)) != EOF)
@@ -155,17 +171,17 @@ void getChar()
     charClass = EOF;
 }
 
-/******************************************************************/
-/* getNonBlank - uma função para chamar getChar até que ela retorne um
-caractere diferente de espaço em branco */
+/*******************************************************************/
+/* getNonBlank - uma funcao para chamar getChar ate que ela retorne
+um caractere diferente de espaco em branco */
 void getNonBlank()
 {
   while (isspace(nextChar))
     getChar();
 }
 
-/******************************************************************/
-/* lex - um analisador léxico simples para expressões aritméticas */
+/*******************************************************************/
+/* lex - um analisador lexico simples para expressoes aritmeticas  */
 int lex()
 {
   lexLen = 0;
@@ -181,18 +197,18 @@ int lex()
       addChar();
       getChar();
     }
-    nextToken = STATEMENT;
+    nextToken = COMMAND;
     break;
   /* Reconhecer fatores */
   case DIGIT:
     addChar();
     getChar();
-    while (charClass == DIGIT || charClass == DOT)
+    while (charClass == DIGIT)
     {
       addChar();
       getChar();
     }
-    nextToken = FACTOR;
+    nextToken = INT_LIT;
     break;
   /* Reconhecer string */
   case QUOTE:
@@ -214,12 +230,11 @@ int lex()
       error();
     }
     break;
-  /* Parênteses e operadores */
+  /* Parenteses e operadores */
   case UNKNOWN:
     lookup(nextChar);
     getChar();
     break;
-  /* Fim do arquivo */
   case EOF:
     nextToken = EOF;
     lexeme[0] = 'E';
@@ -227,14 +242,14 @@ int lex()
     lexeme[2] = 'F';
     lexeme[3] = 0;
     break;
-  } /* Fim do switch */
+  }
   char *tokenString = getTokenString(nextToken);
   printf("Token: %s --> \tLexeme: %s\n", tokenString, lexeme);
   return nextToken;
-} /* Fim da função lex */
+}
 
-/******************************************************************/
-/* getString - uma função para obter o próximo caractere da entrada
+/*******************************************************************/
+/* getString - uma funcao para obter o próximo caractere da entrada
 para aceitar qualquer caractere em strings, com exceção de " e quebra de linha */
 void getString()
 {
@@ -267,9 +282,9 @@ char *getTokenString(int token)
   return "UNKNOWN";
 }
 
-/******************************************************************/
-/* Função para retornar uma mensagem contendo "Erro" */
+/*******************************************************************/
+/*  Funcao para retornar uma mensagem contendo "Erro"              */
 void error()
 {
-  printf("Erro");
+  printf("Erro!\n");
 }

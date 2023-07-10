@@ -1,11 +1,9 @@
-/* front.c - um analisador léxico e analisador sintático
-simples para expressões aritméticas simples */
+/* parser.c - um analisador sintático simples */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
-int printed = 0;
 int indent = -1;
 
 /* Declarações globais */
@@ -44,18 +42,10 @@ char *getTokenString(int token);
 #define STRING 200
 #define FACTOR 300
 
-#define NUM_TOKENS (sizeof(tokenStrings) / sizeof(tokenStrings[0]))
+void reader(char file_name[]);
+void writer();
 
-char *tokenStrings[] = {
-    "LETTER", "DIGIT", "IDENT", "QUOTE", "DOT", "CHAR_STR", "UNKNOWN",
-    "ASSIGN_OP", "ADD_OP", "SUB_OP", "MULT_OP", "DIV_OP",
-    "LEFT_PAREN", "RIGHT_PAREN", "SEMICOLON", "COMMAND",
-    "STRING", "FACTOR"};
-
-int tokenNumbers[] =
-    {0, 1, 2, 3, 4, 5, 99, 20, 21, 22, 23, 24, 25, 26, 27, 100, 200, 300};
-
-/* Declarações de Funções */
+/* Declarações de Funções Lexico */
 int lookup(char ch);
 void addChar();
 void getChar();
@@ -64,6 +54,7 @@ int lex();
 void getString();
 void error();
 
+/* Declarações de Funções Sintatico */
 void program();
 void stmt_list();
 void stmt();
@@ -75,12 +66,24 @@ void factor();
 void operator();
 void printInTree(char str[]);
 
-/******************************************************************/
-/* função principal */
+/*******************************************************************/
+/* funcao principal */
 int main(int argc, char *argv[])
 {
-  if ((f = fopen(argv[1], "r")) == NULL)
-    printf("ERROR - cannot open %s \n", argv[1]);
+  if (argc < 2)
+    do
+    {
+      writer();
+    } while (1);
+  else
+    reader(argv[1]);
+  return 0;
+}
+
+void reader(char file_name[])
+{
+  if ((f = fopen(file_name, "r")) == NULL)
+    printf("ERROR - cannot open %s.\n", file_name);
   else
   {
     getChar();
@@ -90,12 +93,37 @@ int main(int argc, char *argv[])
       program();
     } while (nextToken != EOF);
   }
-  return 0;
 }
 
-/******************************************************************/
-/* lookup - uma função para processar operadores e parênteses
-e retornar o token */
+void writer()
+{
+  char file_name[] = "./input/writer.vb";
+  const int stmt_size = 200;
+  char statement[stmt_size];
+
+  printf("\nPara sair digite --->   Application.Exit \n");
+  printf("Exemplos de comandos [ obs: sem ; ]:     \n");
+  printf("[Ex1] Console.Write(\"Hello, World!\")   \n");
+  printf("[Ex2] Console.Write(4 + 4)               \n");
+  printf("[Ex3] 1 + 2 * 3 / 4                      \n");
+  printf("Digite um comando: ");
+  fgets(statement, stmt_size, stdin);
+
+  if (strstr(statement, "Application.Exit"))
+    exit(0);
+
+  f = fopen(file_name, "w");
+  if (f == NULL) // testando criacao
+    printf("Erro na abertura do arquivo!\n");
+  fputs(statement, f);
+  fclose(f);
+
+  reader(file_name);
+}
+
+/*******************************************************************/
+/* lookup - uma funcao para processar operadores, parenteses e ponto
+e virgula, depois retornar o token */
 int lookup(char ch)
 {
   switch (ch)
@@ -136,8 +164,8 @@ int lookup(char ch)
   return nextToken;
 }
 
-/******************************************************************/
-/* addChar - uma função para adicionar nextChar ao vetor lexeme */
+/*******************************************************************/
+/* addChar - uma funcao para adicionar nextChar ao vetor lexeme    */
 void addChar()
 {
   if (lexLen <= 98)
@@ -149,9 +177,9 @@ void addChar()
     printf("Error - lexeme is too long \n");
 }
 
-/******************************************************************/
-/* getChar - uma função para obter o próximo caractere da entrada
-e determinar sua classe de caracteres */
+/*******************************************************************/
+/* getChar - uma funcao para obter o proximo caractere da entrada e
+determinar sua classe de caracteres */
 void getChar()
 {
   if ((nextChar = getc(f)) != EOF)
@@ -173,17 +201,17 @@ void getChar()
     charClass = EOF;
 }
 
-/******************************************************************/
-/* getNonBlank - uma função para chamar getChar até que ela retorne um
-caractere diferente de espaço em branco */
+/*******************************************************************/
+/* getNonBlank - uma funcao para chamar getChar ate que ela retorne
+um caractere diferente de espaco em branco */
 void getNonBlank()
 {
   while (isspace(nextChar))
     getChar();
 }
 
-/******************************************************************/
-/* lex - um analisador léxico simples para expressões aritméticas */
+/*******************************************************************/
+/* lex - um analisador lexico simples para expressoes aritmeticas  */
 int lex()
 {
   lexLen = 0;
@@ -232,12 +260,11 @@ int lex()
       error();
     }
     break;
-  /* Parênteses e operadores */
+  /* Parenteses e operadores */
   case UNKNOWN:
     lookup(nextChar);
     getChar();
     break;
-  /* Fim do arquivo */
   case EOF:
     nextToken = EOF;
     lexeme[0] = 'E';
@@ -245,14 +272,12 @@ int lex()
     lexeme[2] = 'F';
     lexeme[3] = 0;
     break;
-  } /* Fim do switch */
-  // char *tokenString = getTokenString(nextToken);
-  // printf("Token: %s --> \tLexeme: %s\n", tokenString, lexeme);
+  }
   return nextToken;
-} /* Fim da função lex */
+}
 
-/******************************************************************/
-/* getString - uma função para obter o próximo caractere da entrada
+/*******************************************************************/
+/* getString - uma funcao para obter o próximo caractere da entrada
 para aceitar qualquer caractere em strings, com exceção de " e quebra de linha */
 void getString()
 {
@@ -271,79 +296,74 @@ void getString()
     charClass = EOF;
 }
 
-/******************************************************************/
-/* Função para obter a string correspondente a um número de token */
-char *getTokenString(int token)
-{
-  for (int i = 0; i < NUM_TOKENS; i++)
-  {
-    if (tokenNumbers[i] == token)
-    {
-      return tokenStrings[i];
-    }
-  }
-  return "UNKNOWN";
-}
-
-/******************************************************************/
-/* Função para retornar uma mensagem contendo "Erro" */
+/*******************************************************************/
+/*  Funcao para retornar uma mensagem contendo "Erro"              */
 void error()
 {
   printf("Erro!\n");
 }
 
-/******************************************************************/
+/*******************************************************************/
 /**********             ANALISADOR SINTATICO              **********/
-/******************************************************************/
+/*******************************************************************/
 
-// Função <program> -> <stmt_list>
+// Funcao <program> -> <stmt_list>
 void program()
 {
   indent++;
   printInTree("Enter <program>");
+
   while (nextToken != EOF)
   {
     stmt_list();
   }
+
   printInTree("Exit <program>");
   indent--;
 }
 
-// Função <stmt_list> -> <stmt> {; <stmt_list>}
+// Funcao <stmt_list> -> <stmt> {; <stmt_list>}
 void stmt_list()
 {
   indent++;
   printInTree("Enter <stmt_list>");
+
   stmt();
 
   while (nextToken == SEMICOLON)
   {
+    operator();
     lex();
     stmt();
   }
+
   printInTree("Exit <stmt_list>");
   indent--;
 }
 
-// Função <stmt> -> <command> | <string> | <expr>
+// Funcao <stmt> -> <command> | <string> | <expr>
 void stmt()
 {
   indent++;
   printInTree("Enter <stmt>");
+
   if (nextToken == COMMAND)
     command();
   else if (nextToken == STRING)
     string();
   else
     expr();
+
   printInTree("Exit <stmt>");
   indent--;
 }
 
+// Funcao <command> -> Console.Write(<expr> | <string>)
 void command()
 {
   indent++;
   printInTree("Enter <command>");
+
   if (nextToken == COMMAND)
   {
     printInTree(lexeme);
@@ -363,22 +383,26 @@ void command()
     printInTree(lexeme);
     lex();
   }
+
   printInTree("Exit <command>");
   indent--;
 }
 
+// Funcao <string> -> "{a|b|...|y|z|A|B|...|Y|Z}"
 void string()
 {
   indent++;
   printInTree("Enter <string>");
+
   printInTree(lexeme);
   if (nextToken == STRING)
     lex();
+
   printInTree("Exit <string>");
   indent--;
 }
 
-// Função <expr> → <term> {(+ | -) <term>}
+// Funcao <expr> → <term> {(+ | -) <term>}
 void expr()
 {
   indent++;
@@ -392,15 +416,17 @@ void expr()
     lex();
     term();
   }
+
   printInTree("Exit <expr>");
   indent--;
 }
 
-// Função <term> → <factor> {(* | /) <factor>}
+// Funcao <term> → <factor> {(* | /) <factor>}
 void term()
 {
   indent++;
   printInTree("Enter <term>");
+
   factor();
 
   while (nextToken == MULT_OP || nextToken == DIV_OP)
@@ -409,15 +435,17 @@ void term()
     lex();
     factor();
   }
+
   printInTree("Exit <term>");
   indent--;
 }
 
-// Função <factor> → id | int_constant | (<expr>)
+// Funcao <factor> → id | int_constant | (<expr>)
 void factor()
 {
   indent++;
   printInTree("Enter <factor>");
+
   printInTree(lexeme);
 
   /* Determina qual RHS */
@@ -437,17 +465,18 @@ void factor()
         lex();
       else
         error();
-    } /* Fim do if (nextToken == ... */
+    }
     /* Não era um identificador, um literal inteiro ou um
     parêntese esquerdo */
     else
       error();
-  } /* Fim do else */
+  }
 
   printInTree("Exit <factor>");
   indent--;
 }
 
+// Funcao <operador> -> ( + | - | * | / | ;)
 void operator()
 {
   indent++;
