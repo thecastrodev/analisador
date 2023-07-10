@@ -72,6 +72,7 @@ void expr();
 void string();
 void term();
 void factor();
+void operator();
 void printInTree(char str[]);
 
 /******************************************************************/
@@ -387,6 +388,7 @@ void expr()
 
   while (nextToken == ADD_OP || nextToken == SUB_OP)
   {
+    operator();
     lex();
     term();
   }
@@ -403,6 +405,7 @@ void term()
 
   while (nextToken == MULT_OP || nextToken == DIV_OP)
   {
+    operator();
     lex();
     factor();
   }
@@ -441,11 +444,14 @@ void factor()
       error();
   } /* Fim do else */
 
-  // if (nextToken == INT_LIT)
-  // {
-  //   lex();
-  // }
   printInTree("Exit <factor>");
+  indent--;
+}
+
+void operator()
+{
+  indent++;
+  printInTree(lexeme);
   indent--;
 }
 
